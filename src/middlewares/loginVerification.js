@@ -1,7 +1,7 @@
-const conexao = require('../conexao');
+const connection = require('../db_connection');
 const jwt = require('jsonwebtoken');
 
-const verificarLogin = async (req, res, next) => {
+const loginVerification = async (req, res, next) => {
   const { authorization } = req.headers;
 
   if (!authorization) {
@@ -21,14 +21,14 @@ const verificarLogin = async (req, res, next) => {
   try {
     const { id } = jwt.verify(token, process.env.JWT_SECRET);
     const query = 'select * from usuarios where id = $1';
-    const { rows: usuarios, rowCount } = await conexao.query(query, [id]);
+    const { rows: users, rowCount } = await connection.query(query, [id]);
     if (rowCount === 0) {
       return res.json(404).json({
         mensagem: 'Usuário não existe.',
       });
     }
-    const { senha, ...usuario } = usuarios[0];
-    req.usuario = usuario;
+    const { senha, ...user } = users[0];
+    req.user = user;
     next();
   } catch (error) {
     return {
@@ -37,4 +37,4 @@ const verificarLogin = async (req, res, next) => {
   }
 };
 
-module.exports = verificarLogin;
+module.exports = loginVerification;

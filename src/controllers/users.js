@@ -1,32 +1,17 @@
-const conexao = require('../conexao');
+const connection = require('../db_connection');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const signUpSchema = require('../validations/validateUsers/signUpSchema');
+const loginSchema = require('../validations/validateUsers/loginSchema');
 
-const cadastrarUsuario = async (req, res) => {
-  const { nome, nome_loja, email, senha } = req.body;
-  if (!nome) {
-    return res.status(400).json({
-      mensagem: 'O campo nome é obrigatório.',
-    });
-  }
-  if (!nome_loja) {
-    return res.status(400).json({
-      mensagem: 'O campo nome_loja é obrigatório.',
-    });
-  }
-  if (!email) {
-    return res.status(400).json({
-      mensagem: 'O campo email é obrigatório.',
-    });
-  }
-  if (!senha) {
-    return res.status(400).json({
-      mensagem: 'O campo senha é obrigatório.',
-    });
-  }
+async function cadastrarUsuario(req, res) {
+  const { nome, email, senha, nome_loja } = req.body;
+
   try {
+    await signUpSchema.validate(req.body);
+
     const queryEmail = 'select * from usuarios where email = $1';
-    const { rowCount } = await conexao.query(queryEmail, [email]);
+    const { rowCount } = await connection.query(queryEmail, [email]);
     if (rowCount > 0) {
       return res.status(400).json({
         mensagem: 'Já existe usuário cadastrado com o e-mail informado.',
@@ -37,11 +22,12 @@ const cadastrarUsuario = async (req, res) => {
       mensagem: error.message,
     });
   }
+
   const senhaCriptografada = await bcrypt.hash(senha, 10);
   try {
     const queryCadastro =
       'insert into usuarios (nome, nome_loja, email, senha) values ($1, $2, $3, $4)';
-    const { rowCount } = await conexao.query(queryCadastro, [
+    const { rowCount } = await connection.query(queryCadastro, [
       nome,
       nome_loja,
       email,
@@ -59,24 +45,16 @@ const cadastrarUsuario = async (req, res) => {
       mensagem: 'Não foi possível realizar o cadastro.',
     });
   }
-};
+}
 
-const login = async (req, res) => {
+async function login(req, res) {
   const { email, senha } = req.body;
-  if (!email) {
-    return res.status(400).json({
-      mensagem: 'O campo email é obrigatório.',
-    });
-  }
-  if (!senha) {
-    return res.status(400).json({
-      mensagem: 'O campo senha é obrigatório.',
-    });
-  }
 
   try {
+    await loginSchema.validate(req.body);
+
     const queryEmail = 'select * from usuarios where email = $1';
-    const { rows: usuarios, rowCount: quantidadeUsuarios } = await conexao.query(queryEmail, [
+    const { rows: usuarios, rowCount: quantidadeUsuarios } = await connection.query(queryEmail, [
       email,
     ]);
 
@@ -105,45 +83,28 @@ const login = async (req, res) => {
       mensagem: error.message,
     });
   }
-};
+}
 
-const detalharUsuario = async (req, res) => {
-  const { usuario } = req;
+async function detalharUsuario(req, res) {
+  const { user } = req;
 
-  if (!usuario) {
+  if (!user) {
     return res.status(400).json({
       mensagem: 'Não foi possível acessar este usuário.',
     });
   }
-  return res.status(200).json(usuario);
-};
+  return res.status(200).json(user);
+}
 
-const atualizarUsuario = async (req, res) => {
+async function atualizarUsuario(req, res) {
   const { nome, nome_loja, email, senha } = req.body;
-  const { usuario } = req;
-  if (!nome) {
-    return res.status(400).json({
-      mensagem: 'O campo nome é obrigatório.',
-    });
-  }
-  if (!nome_loja) {
-    return res.status(400).json({
-      mensagem: 'O campo nome_loja é obrigatório.',
-    });
-  }
-  if (!email) {
-    return res.status(400).json({
-      mensagem: 'O campo email é obrigatório.',
-    });
-  }
-  if (!senha) {
-    return res.status(400).json({
-      mensagem: 'O campo senha é obrigatório.',
-    });
-  }
+  const { user } = req;
+
   try {
+    await signUpSchema.validate(req.body);
+
     const queryEmail = 'select * from usuarios where email = $1';
-    const { rowCount } = await conexao.query(queryEmail, [email]);
+    const { rowCount } = await connection.query(queryEmail, [email]);
     if (rowCount > 0) {
       return res.status(400).json({
         mensagem: 'O e-mail informado já está sendo utilizado por outro usuário.',
@@ -158,12 +119,12 @@ const atualizarUsuario = async (req, res) => {
   try {
     const queryUpdate =
       'update usuarios set nome = $1, nome_loja = $2, email = $3, senha = $4 where id = $5';
-    const { rowCount } = await conexao.query(queryUpdate, [
+    const { rowCount } = await connection.query(queryUpdate, [
       nome,
       nome_loja,
       email,
       senhaCriptografada,
-      usuario.id,
+      user.id,
     ]);
     if (rowCount === 0) {
       return res.status(400).json({
@@ -176,5 +137,5 @@ const atualizarUsuario = async (req, res) => {
       mensagem: 'Não foi possível realizar o cadastro.',
     });
   }
-};
+}
 module.exports = { cadastrarUsuario, login, detalharUsuario, atualizarUsuario };
