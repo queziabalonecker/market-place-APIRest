@@ -6,22 +6,19 @@ const loginVerification = async (req, res, next) => {
 
   if (!authorization) {
     return res.status(401).json({
-      mensagem: 'Para acessar este recurso um token de autenticação válido deve ser enviado.',
+      mensagem:
+        'Para acessar este recurso um token de autenticação válido deve ser enviado.',
     });
   }
   const token = authorization.replace('Bearer', '').trim();
 
   try {
     jwt.verify(token, process.env.JWT_SECRET);
-  } catch (error) {
-    return res.status(401).json({
-      mensagem: 'Para acessar este recurso um token de autenticação válido deve ser enviado.',
-    });
-  }
-  try {
+
     const { id } = jwt.verify(token, process.env.JWT_SECRET);
     const query = 'select * from usuarios where id = $1';
     const { rows: users, rowCount } = await connection.query(query, [id]);
+
     if (rowCount === 0) {
       return res.json(404).json({
         mensagem: 'Usuário não existe.',
